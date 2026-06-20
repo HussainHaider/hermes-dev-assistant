@@ -8,11 +8,14 @@ via Notion, and responds through Telegram.
 import asyncio
 import logging
 import os
+import ssl
 import sys
 
+import httpx
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.request import HTTPXRequest
 
 # Load environment before importing project modules
 load_dotenv()
@@ -20,13 +23,15 @@ load_dotenv()
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from workflows.dev_workflow import DevWorkflow  # noqa: E402
-
+# Configure logging BEFORE importing project modules (which set up their own handlers)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    force=True,  # Override any prior basicConfig from imported modules
 )
 logger = logging.getLogger(__name__)
+
+from workflows.dev_workflow import DevWorkflow  # noqa: E402
 
 from typing import Optional  # noqa: E402
 
@@ -156,13 +161,30 @@ def main() -> None:
         sys.exit(1)
 
     logger.info("Starting Hermes Dev Assistant...")
+    print("Starting Hermes Dev Assistant...", flush=True)
+
+    # Use a custom SSL context to work around old LibreSSL on macOS system Python
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+
+    request = HTTPXRequest(
+        connect_timeout=30.0,
+        read_timeout=30.0,
+        write_timeout=30.0,
+        httpx_kwargs={"verify": ssl_context},
+    )
 
     app = (
         Application.builder()
         .token(token)
-        .connect_timeout(30.0)
-        .read_timeout(30.0)
-        .write_timeout(30.0)
+        .request(request)
+        .get_updates_request(HTTPXRequest(
+            connect_timeout=30.0,
+            read_timeout=30.0,
+            write_timeout=30.0,
+            httpx_kwargs={"verify": ssl_context},
+        ))
         .build()
     )
 
@@ -182,6 +204,7 @@ def main() -> None:
 
     # Start polling
     logger.info("Bot is running. Press Ctrl+C to stop.")
+    print("Bot is running. Send /start to your Telegram bot!", flush=True)
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
