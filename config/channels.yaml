@@ -1,0 +1,9 @@
+channels:
+  telegram:
+    enabled: true
+    token: ${TELEGRAM_BOT_TOKEN}
+    allowed_users:
+      - your_telegram_user_id  # Get this from @userinfobot on Telegram
+    webhook:
+      enabled: false
+      # url: https://your-domain.com/webhook/telegram

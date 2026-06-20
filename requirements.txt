@@ -1,0 +1,9 @@
+# Core
+python-dotenv==1.0.1
+openai==1.82.0
+PyGithub==2.5.0
+notion-client==2.2.1
+python-telegram-bot==21.10
+
+# Utilities
+pyyaml==6.0.2
